@@ -24,7 +24,7 @@ Some original code from [qbx_seatbelt](https://github.com/Qbox-project/qbx_seatb
 -   Add item(s) to inventory.
 ## Item
 
--# ox_inventory:
+ox_inventory:
 ```lua
 ['harness_kit'] = {
     label = 'Harness Kit',
@@ -37,13 +37,13 @@ Some original code from [qbx_seatbelt](https://github.com/Qbox-project/qbx_seatb
             action = function()
                 exports.kit_seatbelt:installHarness('install')
             end
-		},
+        },
         {
             label = 'Remove Harness',
             action = function()
                 exports.kit_seatbelt:installHarness('remove')
             end
-		},
+        },
     }
 },
 ```
