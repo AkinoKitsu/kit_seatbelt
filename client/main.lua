@@ -53,7 +53,7 @@ local function toggleSeatbelt()
             SetFlyThroughWindscreenParams(minSpeed, 1.0, 17.0, 10.0)
         end
         if seatbeltOn then
-            if not progressBar(locale('progress.buckleHarness'), config.harness.buckleTime, { car = true, combat = true, }) then
+            if not progressBar(locale('progress.buckleHarness'), config.harness.buckleTime, { car = config.harness.preventDriveWhileBuckling, combat = true, }) then
                 return
             end
         end
