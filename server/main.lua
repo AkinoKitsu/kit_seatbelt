@@ -8,29 +8,14 @@ local function hasHarness(plate)
     return MySQL.scalar.await('SELECT plate FROM harness_vehicles WHERE plate = ?', { plate }) ~= nil
 end
 
-function GetVehicleByPlate(plate)
-    if not plate then return nil end
-
-    for _, vehicle in ipairs(GetAllVehicles() or {}) do
-        if GetVehicleNumberPlateText(vehicle) == plate then
-            return vehicle
-        end
-    end
-
-    return nil
-end
-
 local function setHarnessState(vehicle, state)
     if vehicle then
         Entity(vehicle).state:set('harness', state, true)
     end
 end
 
-local function installHarness(plate, action)
-    if not plate or not action then return end
-
-    local vehicle = GetVehicleByPlate(plate)
-    if not vehicle then return end
+local function installHarness(plate, vehicle, action)
+    if not plate or not vehicle or not action then return end
 
     if action == 'install' then
         if isVehicleOwned(plate) then
@@ -50,9 +35,10 @@ end
 
 lib.callback.register('qbx_seatbelt:server:installHarness', function(source, plate, action)
     local src = source
-    if not plate or not action then return false end
-    local veh = GetVehicleByPlate(plate)
-    if not veh then return false end
+    local ped = GetPlayerPed(src)
+    local veh = GetVehiclePedIsIn(ped, false)
+    if not plate or not action or not veh then return false end
+
     local hasHarnessState = Entity(veh).state.harness
 
     if action == 'install' then
@@ -65,7 +51,7 @@ lib.callback.register('qbx_seatbelt:server:installHarness', function(source, pla
         if not exports.ox_inventory:AddItem(src, 'harness', 1) then return false end
     end
 
-    return installHarness(plate, action)
+    return installHarness(plate, veh, action)
 end)
 
 RegisterNetEvent('qbx_garages:server:vehicleSpawned', function(veh)
