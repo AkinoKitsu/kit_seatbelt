@@ -13,7 +13,10 @@ client_scripts {
     'client/main.lua'
 }
 
-server_script 'server/main.lua'
+server_scripts {
+    'server/main.lua',
+    '@oxmysql/lib/MySQL.lua'
+}
 
 files {
     'locales/*.json',

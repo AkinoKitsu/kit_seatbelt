@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS harness_vehicles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    plate VARCHAR(8) NOT NULL
+);

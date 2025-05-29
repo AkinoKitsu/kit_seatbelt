@@ -1,14 +1,21 @@
 {
-    "progress" : {
-        "attachHarness": "Attaching Race Harness",
-        "removeHarness": "Removing Race Harness"
-    },
-    "notify": {
-        "notInCar": "You're not in a car"
-    },
-    "error": {
-        "seatbelton": "Take your seatbelt off first",
-        "harnesson": "Take your harness off first"
-    },
-    "toggleCommand": "Toggle Seatbelt"
+  "progress": {
+    "attachHarness": "Attaching Race Harness",
+    "removeHarness": "Removing Race Harness",
+    "buckleHarness": "Buckling Harness..."
+  },
+  "notify": {
+    "notInCar": "You're not in a car",
+    "harnessInstalled": "Installed Harness",
+    "harnessRemoved": "Removed Harness",
+    "harnessFailed": "Failed to install/remove harness",
+    "noHarnessItem": "You don't have a harness",
+    "noHarnessInstalled": "You don't have a harness installed",
+    "harnessAlreadyInstalled": "You already have a harness installed"
+  },
+  "error": {
+    "seatbelton": "Take your seatbelt off first",
+    "harnesson": "Take your harness off first"
+  },
+  "toggleCommand": "Toggle Seatbelt"
 }

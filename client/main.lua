@@ -18,37 +18,124 @@ local function playBuckleSound(seatbelt)
     ReleaseNamedScriptAudioBank('audiodirectory/seatbelt_sounds')
 end
 
-local function toggleSeatbelt()
-    if playerState.harness then
-        exports.qbx_core:Notify(locale('error.harnesson'), 'error')
-        return
+local function progressBar(label, duration, disable)
+    if lib.progressBar({
+            duration = duration,
+            label = label,
+            useWhileDead = false,
+            canCancel = false,
+            disable = disable or {
+                car = true,
+                combat = true,
+            }
+        }) then
+        return true
     end
+    return false
+end
+
+local buckling = false
+local function toggleSeatbelt()
+    if not cache.vehicle then return end
+    if buckling then return end
+
     local seatbeltOn = not playerState.seatbelt
     playerState.seatbelt = seatbeltOn
-    SetFlyThroughWindscreenParams(seatbeltOn and minSpeeds.buckled or minSpeeds.unbuckled, 1.0, 17.0, 10.0)
+
+    buckling = true
+    if Entity(cache.vehicle).state.harness then
+        local canFlyThroughWindscreen = not seatbeltOn
+        if config.harness.disableFlyingThroughWindscreen then
+            SetPedConfigFlag(cache.ped, 32, canFlyThroughWindscreen) -- PED_FLAG_CAN_FLY_THRU_WINDSCREEN
+        else
+            local minSpeed = seatbeltOn and minSpeeds.harness or
+                (playerState.seatbelt and minSpeeds.buckled or minSpeeds.unbuckled)
+            SetFlyThroughWindscreenParams(minSpeed, 1.0, 17.0, 10.0)
+        end
+        if seatbeltOn then
+            if not progressBar(locale('progress.buckleHarness'), config.harness.buckleTime, { car = true, combat = true, }) then
+                return
+            end
+        end
+    else
+        SetFlyThroughWindscreenParams(seatbeltOn and minSpeeds.buckled or minSpeeds.unbuckled, 1.0, 17.0, 10.0)
+    end
     TriggerEvent('seatbelt:client:ToggleSeatbelt')
     playBuckleSound(seatbeltOn)
+    buckling = false
 end
 
-local function toggleHarness()
-    local harnessOn = not playerState.harness
-    playerState.harness = harnessOn
-    TriggerEvent('seatbelt:client:ToggleSeatbelt')
-    playBuckleSound(harnessOn)
-
-    local canFlyThroughWindscreen = not harnessOn
-    if config.harness.disableFlyingThroughWindscreen then
-        SetPedConfigFlag(cache.ped, 32, canFlyThroughWindscreen) -- PED_FLAG_CAN_FLY_THRU_WINDSCREEN
-    else
-        local minSpeed = harnessOn and minSpeeds.harness or (playerState.seatbelt and minSpeeds.buckled or minSpeeds.unbuckled)
-        SetFlyThroughWindscreenParams(minSpeed, 1.0, 17.0, 10.0)
+local function installHarness(action)
+    if not action then return end
+    if not cache.vehicle then
+        lib.notify({
+            title = 'Harness',
+            description = locale('notify.notInCar'),
+            type = 'error'
+        })
+        return
     end
+
+    local harnessState = Entity(cache.vehicle).state.harness
+    local label
+
+    if action == 'remove' then
+        label = locale('progress.removeHarness')
+        if not harnessState then
+            lib.notify({
+                title = 'Harness',
+                description = locale('notify.noHarnessInstalled'),
+                type = 'error'
+            })
+            return
+        end
+    elseif action == 'install' then
+        label = locale('progress.attachHarness')
+        if harnessState then
+            lib.notify({
+                title = 'Harness',
+                description = locale('notify.harnessAlreadyInstalled'),
+                type = 'error'
+            })
+            return
+        end
+
+        local count = exports.ox_inventory:Search('count', 'harness')
+        if not count or count == 0 then
+            lib.notify({
+                title = 'Harness',
+                description = locale('notify.noHarnessItem'),
+                type = 'error'
+            })
+            return
+        end
+    end
+    if not progressBar(label, config.harness.installTime, { car = true, combat = true, move = true }) then return end
+
+    local plate = qbx.getVehiclePlate(cache.vehicle)
+    local res = lib.callback.await('qbx_seatbelt:server:installHarness', 1000, plate, action)
+    if not res then
+        lib.notify({
+            title = 'Harness',
+            description = locale('notify.harnessFailed'),
+            type = 'error'
+        })
+        return
+    end
+    local notifyText = action == 'install' and 'notify.harnessInstalled' or 'notify.harnessRemoved'
+    lib.notify({
+        title = 'Harness',
+        description = locale(notifyText),
+        type = 'success'
+    })
 end
+
+exports('installHarness', installHarness)
 
 local function seatbelt()
     while cache.vehicle do
         local sleep = 1000
-        if playerState.seatbelt or playerState.harness then
+        if playerState.seatbelt then
             sleep = 0
             DisableControlAction(0, 75, true)
             DisableControlAction(27, 75, true)
@@ -56,12 +143,11 @@ local function seatbelt()
         Wait(sleep)
     end
     playerState.seatbelt = false
-    playerState.harness = false
 end
 
 -- Export
 function HasHarness()
-    return playerState.harness
+    return Entity(cache.vehicle).state.harness or false
 end
 
 --- @deprecated Use `state.seatbelt` instead
@@ -75,50 +161,6 @@ end)
 lib.onCache('vehicle', function()
     Wait(500)
     seatbelt()
-end)
-
--- Events
-RegisterNetEvent('qbx_seatbelt:client:UseHarness', function(ItemData)
-    if playerState.seatbelt then
-        exports.qbx_core:Notify(locale('error.seatbelton'), 'error')
-        return
-    end
-
-    local class = GetVehicleClass(cache.vehicle)
-
-    if not cache.vehicle or class == 8 or class == 13 or class == 14 then
-        exports.qbx_core:Notify(locale('notify.notInCar'), 'error')
-        return
-    end
-
-    if not playerState.harness then
-        if lib.progressCircle({
-            duration = 5000,
-            label = locale('progress.attachHarness'),
-            position = 'bottom',
-            useWhileDead = false,
-            canCancel = true,
-            disable = {
-                combat = true
-            }
-        }) then
-            TriggerServerEvent('qbx_seatbelt:server:equip', ItemData.slot)
-            toggleHarness()
-        end
-    else
-        if lib.progressCircle({
-            duration = 5000,
-            label = locale('progress.removeHarness'),
-            position = 'bottom',
-            useWhileDead = false,
-            canCancel = true,
-            disable = {
-                combat = true
-            }
-        }) then
-            toggleHarness()
-        end
-    end
 end)
 
 -- Register Key
