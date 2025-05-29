@@ -51,17 +51,17 @@ end
 lib.callback.register('qbx_seatbelt:server:installHarness', function(source, plate, action)
     local src = source
     if not plate or not action then return false end
-    local hasHarness = hasHarness(plate)
     local veh = GetVehicleByPlate(plate)
     if not veh then return false end
+    local hasHarnessState = Entity(veh).state.harness
 
     if action == 'install' then
-        if hasHarness then return false end
+        if hasHarnessState then return false end
         if not exports.ox_inventory:RemoveItem(src, 'harness', 1) then return false end
     end
 
     if action == 'remove' then
-        if not hasHarness then return false end
+        if not hasHarnessState then return false end
         if not exports.ox_inventory:AddItem(src, 'harness', 1) then return false end
     end
 
