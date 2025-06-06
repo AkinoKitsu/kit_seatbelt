@@ -7,6 +7,16 @@ local minSpeeds = {
     harness = config.harness.minSpeed / speedMultiplier
 }
 
+CreateThread(function()
+    if GetResourceState("qbx_garages") ~= "started" then
+        if GetResourceState("jg-advancedgarages") == "started" then
+            garageType = "jg"
+        else
+            lib.print.error('No compatible garage resource found. Please install either qbx_garage or JG.')
+        end
+    end
+end)
+
 -- Functions
 local function playBuckleSound(seatbelt)
     qbx.loadAudioBank('audiodirectory/seatbelt_sounds')
@@ -113,7 +123,7 @@ local function installHarness(action)
     if not progressBar(label, config.harness.installTime, { car = true, combat = true, move = true }) then return end
 
     local plate = qbx.getVehiclePlate(cache.vehicle)
-    local res = lib.callback.await('qbx_seatbelt:server:installHarness', 1000, plate, action)
+    local res = lib.callback.await('kit_seatbelt:server:installHarness', 1000, plate, action)
     if not res then
         lib.notify({
             title = 'Harness',
@@ -175,3 +185,10 @@ lib.addKeybind({
         toggleSeatbelt()
     end
 })
+
+RegisterNetEvent("jg-advancedgarages:client:TakeOutVehicle:config", function(vehicle, vehicleDbData, type)
+    if not garageType == 'jg' then return end
+    local netId = NetworkGetNetworkIdFromEntity(vehicle)
+
+    TriggerServerEvent('kit_seatbelt:server:jgVehicleSpawned', netId)
+end)

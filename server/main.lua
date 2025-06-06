@@ -1,4 +1,5 @@
 SetConvarReplicated('game_enableFlyThroughWindscreen', 'true')
+local config = require 'config.server'
 
 local function isVehicleOwned(plate)
     return exports.qbx_vehicles:DoesPlayerVehiclePlateExist(plate)
@@ -33,7 +34,30 @@ local function installHarness(plate, vehicle, action)
     return false
 end
 
-lib.callback.register('qbx_seatbelt:server:installHarness', function(source, plate, action)
+local function getPlateFromFakePlate(fakePlate)
+    local result = MySQL.scalar.await('SELECT plate FROM player_vehicles WHERE fakeplate = ?', { fakePlate })
+    if result then
+        return result
+    end
+end
+
+local function handleVehicleSpawn(veh, isNetId)
+    local vehicle = isNetId and NetworkGetEntityFromNetworkId(veh) or veh
+    local plate = GetVehicleNumberPlateText(vehicle)
+    local realPlate
+    if not plate or not vehicle then return end
+
+    if config.harness.useBrazzersFakeplates then
+        realPlate = getPlateFromFakePlate(plate)
+    end
+    if realPlate then
+        plate = realPlate
+    end
+    if not hasHarness(plate) then return end
+    setHarnessState(vehicle, true)
+end
+
+lib.callback.register('kit_seatbelt:server:installHarness', function(source, plate, action)
     local src = source
     local ped = GetPlayerPed(src)
     local veh = GetVehiclePedIsIn(ped, false)
@@ -55,12 +79,9 @@ lib.callback.register('qbx_seatbelt:server:installHarness', function(source, pla
 end)
 
 RegisterNetEvent('qbx_garages:server:vehicleSpawned', function(veh)
-    local vehicle = veh
-    local plate = GetVehicleNumberPlateText(veh)
-    if not plate then return end
-    if not vehicle then return end
+    handleVehicleSpawn(veh, false)
+end)
 
-    if hasHarness(plate) then
-        setHarnessState(vehicle, true)
-    end
+RegisterNetEvent('kit_seatbelt:server:jgVehicleSpawned', function(netId)
+    handleVehicleSpawn(netId, true)
 end)
