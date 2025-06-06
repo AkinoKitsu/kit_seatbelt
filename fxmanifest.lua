@@ -1,8 +1,9 @@
 fx_version 'cerulean'
 game 'gta5'
 
-description 'qbx_seatbelt'
-repository 'https://github.com/Qbox-project/qbx_seatbelt'
+description 'kit_seatbelt'
+author 'AkinoKitsu | Kitsune Development'
+repository 'https://github.com/AkinoKitsu/kit_seatbelt'
 version '1.0.3'
 
 ox_lib 'locale'
